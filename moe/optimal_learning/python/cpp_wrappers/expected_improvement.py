@@ -541,6 +541,19 @@ class ExpectedImprovement(ExpectedImprovementInterface, OptimizableInterface):
             self._randomness,
         )
 
+    def time_expected_improvement(self, use_gpu, which_gpu, num_repeat):
+        return C_GP.compute_ei_and_time(
+            self._gaussian_process._gaussian_process,
+            cpp_utils.cppify(self._points_to_sample),
+            cpp_utils.cppify(self._points_being_sampled),
+            self.num_to_sample,
+            self.num_being_sampled,
+            self._num_mc_iterations,
+            self._best_so_far,
+            use_gpu, which_gpu, num_repeat,
+            self._randomness,
+        )
+
     compute_objective_function = compute_expected_improvement
 
     def compute_grad_expected_improvement(self, force_monte_carlo=False):

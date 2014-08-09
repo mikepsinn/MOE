@@ -10,6 +10,7 @@
 #include <stdint.h>
 
 #include <algorithm>
+#include <ctime>
 #include <vector>
 
 #include "gpp_common.hpp"
@@ -67,6 +68,16 @@ double CudaExpectedImprovementEvaluator::ComputeExpectedImprovement(StateType * 
                                 ei_state->random_number_ei.data(), &EI_val, ei_state->gpu_mu.ptr,
                                 ei_state->gpu_chol_var.ptr, ei_state->gpu_random_number_ei.ptr,
                                 ei_state->gpu_ei_storage.ptr));
+  return EI_val;
+}
+
+double CudaExpectedImprovementEvaluator::EIComputationTime(StateType * ei_state, int repeat_times, double * restrict elapsed_time) const {
+  double EI_val;
+  clock_t begin_time = clock();
+  for (int i = 0; i < repeat_times; ++i) {
+    EI_val = ComputeExpectedImprovement(ei_state);
+  }
+  *elapsed_time = static_cast<double>(clock() - begin_time) / static_cast<double>(CLOCKS_PER_SEC * repeat_times);
   return EI_val;
 }
 

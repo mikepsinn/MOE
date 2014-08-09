@@ -30,6 +30,7 @@
 #include "gpp_common.hpp"
 #include "gpp_domain.hpp"
 #include "gpp_geometry.hpp"
+#include "gpp_expected_improvement_gpu.hpp"
 #include "gpp_heuristic_expected_improvement_optimization.hpp"
 #include "gpp_math.hpp"
 #include "gpp_optimization.hpp"
@@ -68,6 +69,45 @@ double ComputeExpectedImprovementWrapper(const GaussianProcess& gaussian_process
     return ei_evaluator.ComputeExpectedImprovement(&ei_state);
   }
 }
+
+#ifdef OL_GPU_ENABLED
+boost::python::list TimeExpectedImprovementWrapper(const GaussianProcess& gaussian_process,
+                                                   const boost::python::list& points_to_sample,
+                                                   const boost::python::list& points_being_sampled,
+                                                   int num_to_sample, int num_being_sampled,
+                                                   int max_int_steps, double best_so_far,
+                                                   bool use_gpu, int which_gpu, int repeat_times,
+                                                   RandomnessSourceContainer& randomness_source) {
+  PythonInterfaceInputContainer input_container(points_to_sample, points_being_sampled,
+                                                gaussian_process.dim(), num_to_sample, num_being_sampled);
+
+  bool configure_for_gradients = false;
+  std::vector<double> ei_and_time(2);
+  double time;
+  if (use_gpu == true) {
+    CudaExpectedImprovementEvaluator ei_evaluator(gaussian_process, max_int_steps, best_so_far, which_gpu);
+    CudaExpectedImprovementEvaluator::StateType ei_state(ei_evaluator, input_container.points_to_sample.data(),
+                                                         input_container.points_being_sampled.data(),
+                                                         input_container.num_to_sample,
+                                                         input_container.num_being_sampled,
+                                                         configure_for_gradients,
+                                                         &(randomness_source.uniform_generator));
+    ei_and_time[0] = ei_evaluator.EIComputationTime(&ei_state, repeat_times, &time);
+    ei_and_time[1] = time;
+  } else {
+    ExpectedImprovementEvaluator ei_evaluator(gaussian_process, max_int_steps, best_so_far);
+    ExpectedImprovementEvaluator::StateType ei_state(ei_evaluator, input_container.points_to_sample.data(),
+                                                     input_container.points_being_sampled.data(),
+                                                     input_container.num_to_sample,
+                                                     input_container.num_being_sampled,
+                                                     configure_for_gradients,
+                                                     randomness_source.normal_rng_vec.data());
+    ei_and_time[0] = ei_evaluator.EIComputationTime(&ei_state, repeat_times, &time);
+    ei_and_time[1] = time;
+  }
+  return VectorToPylist(ei_and_time);
+}
+#endif  // OL_GPU_ENABLED
 
 boost::python::list ComputeGradExpectedImprovementWrapper(const GaussianProcess& gaussian_process,
                                                           const boost::python::list& points_to_sample,
@@ -470,6 +510,9 @@ void ExportExpectedImprovementFunctions() {
     :return: computed EI
     :rtype: float64 >= 0.0
     )%%");
+
+  boost::python::def("compute_ei_and_time", TimeExpectedImprovementWrapper, R"%%(
+      )%%");
 
   boost::python::def("compute_grad_expected_improvement", ComputeGradExpectedImprovementWrapper, R"%%(
     Compute the gradient of expected improvement evaluated at points_to_sample.

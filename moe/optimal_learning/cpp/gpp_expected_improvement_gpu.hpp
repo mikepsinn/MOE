@@ -123,6 +123,19 @@ class CudaExpectedImprovementEvaluator final {
   double ComputeExpectedImprovement(StateType * ei_state) const OL_NONNULL_POINTERS OL_WARN_UNUSED_RESULT;
 
   /*!\rst
+    This function calls ComputeExpectedImprovement repeat_times times, and report back EI_val & averaged time for each call.
+    \param
+      :ei_state[1]: properly configured state object
+      :repeat_times: number of repetations of the call
+    \output
+      :ei_state[1]: state with temporary storage modified; ``uniform_rng`` modified
+      :elapsed_time: averaged time for each call
+    \return
+      the expected improvement from sampling ``points_to_sample`` with ``points_being_sampled`` concurrent experiments
+  \endrst*/
+  double EIComputationTime(StateType * ei_state, int repeat_times, double * restrict elapsed_time) const OL_NONNULL_POINTERS OL_WARN_UNUSED_RESULT;
+
+  /*!\rst
     This function has the same functionality as ComputeGradExpectedImprovement (see gpp_math.hpp)
     in class ExpectedImprovementEvaluator.
     \param

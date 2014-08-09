@@ -203,6 +203,7 @@
 #define MOE_OPTIMAL_LEARNING_CPP_GPP_MATH_HPP_
 
 #include <algorithm>
+#include <ctime>
 #include <limits>
 #include <memory>
 #include <vector>
@@ -761,6 +762,16 @@ class ExpectedImprovementEvaluator final {
       the expected improvement from sampling ``points_to_sample`` with ``points_being_sampled`` concurrent experiments
   \endrst*/
   double ComputeExpectedImprovement(StateType * ei_state) const OL_NONNULL_POINTERS OL_WARN_UNUSED_RESULT;
+
+  double EIComputationTime(StateType * ei_state, int repeat_times, double * restrict time) const OL_NONNULL_POINTERS OL_WARN_UNUSED_RESULT {
+    double ei_val; 
+    time_t begin_time = clock();
+    for (int i = 0; i < repeat_times; ++i) {
+      ei_val = ComputeExpectedImprovement(ei_state);
+    }
+  *time = static_cast<double>(clock() - begin_time) / static_cast<double>(CLOCKS_PER_SEC * repeat_times);
+  return ei_val;
+  }
 
   /*!\rst
     Computes the (partial) derivatives of the expected improvement with respect to each point of ``points_to_sample``.
